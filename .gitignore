@@ -6,3 +6,6 @@
 /SigmaTest/bin/Debug/netcoreapp3.1
 /.vs/SigmaTest/v16
 /.vs/SigmaTest/DesignTimeBuild
+/SigmaTest/Cache/dockan
+/SigmaTest.Tests/obj
+/SigmaTest.Tests/bin/Debug/netcoreapp3.1

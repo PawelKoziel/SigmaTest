@@ -14,54 +14,51 @@ namespace SigmaTest.Services
 {
     public class BlobAccessService : IBlobAccessService
     {
-        private readonly IConfiguration _configuration;
+        private readonly IAzureConnector _connector;
         private readonly ICsvParsingService _parsingService;
         private readonly ILogger<BlobAccessService> _logger;
 
+        private readonly BlobContainerClient container;
+
         public BlobAccessService(ILogger<BlobAccessService> logger
-                                , IConfiguration configuration
+                                , IAzureConnector connector
                                 , ICsvParsingService parsingService)
         {
             _logger = logger;
-            _configuration = configuration;
+            _connector = connector;
             _parsingService = parsingService;
+
+            container = _connector.GetContainer();
         }
 
 
         public async Task<IEnumerable<DataPoint>> GetDataAsync(string blobPath, string blobName)
         {
-            var client = new BlobServiceClient(_configuration.GetConnectionString("Azure"));
-            var container = client.GetBlobContainerClient(_configuration.GetValue<string>("BlobContainer"));
+            var blob = container.GetBlobClient(blobPath + "/" + blobName);
 
-            IEnumerable<DataPoint> result = new List<DataPoint>();
-
-            try
+            if (await blob.ExistsAsync())
             {
-                using (var dataStream = new MemoryStream())
-                {
-                    var blob = container.GetBlobClient(blobPath + "/" + blobName);
-
-                    await blob.DownloadToAsync(dataStream);
-                    return _parsingService.ParseCsvData(dataStream);
-                }
+                using var dataStream = new MemoryStream();
+                await blob.DownloadToAsync(dataStream);
+                return _parsingService.ParseCsvData(dataStream);
             }
-            catch (RequestFailedException) //RequestFailedException
+            else
             {
-                var localArchiveName = await ArchiveHandlerAsync(blobName, blobPath, container);
+                var localArchiveName = await HandleDataArchive(blobName, blobPath);
                 return GetDataFromArchive(blobName, localArchiveName);
             }
         }
 
 
-        private async Task<string> ArchiveHandlerAsync(string blobName, string blobPath, BlobContainerClient containerClient)
+        private async Task<string> HandleDataArchive(string blobName, string blobPath)
         {
 
             var archiveName = blobPath + "/historical.zip";
-            var blob = containerClient.GetBlobClient(archiveName);
+            var blob = container.GetBlobClient(archiveName);
 
             Directory.CreateDirectory(Path.Combine("Cache", blobPath));
 
-            var localArchiveName = System.IO.Path.Combine("Cache", blobPath, "historical.zip");
+            var localArchiveName = Path.Combine("Cache", blobPath, "historical.zip");
 
             if (File.Exists(localArchiveName))
             {
@@ -71,6 +68,7 @@ namespace SigmaTest.Services
 
                 if (blobModifDate > fileModifDate)
                 {
+                    
                     File.Delete(localArchiveName);
                     await blob.DownloadToAsync(localArchiveName);
                 }
@@ -79,16 +77,15 @@ namespace SigmaTest.Services
             {
                 await blob.DownloadToAsync(localArchiveName);
             }
-
             return localArchiveName;
         }
 
 
-        private IEnumerable<DataPoint> GetDataFromArchive(string blobName, string localArchiveName)
+        public IEnumerable<DataPoint> GetDataFromArchive(string blobName, string archiveFile)
         {
             using (var archiveStream = new MemoryStream())
             {
-                using (FileStream file = new FileStream(localArchiveName, FileMode.Open, FileAccess.Read))
+                using (FileStream file = new FileStream(archiveFile, FileMode.Open, FileAccess.Read))
                     file.CopyTo(archiveStream);
 
                 ZipArchive archive = new ZipArchive(archiveStream);

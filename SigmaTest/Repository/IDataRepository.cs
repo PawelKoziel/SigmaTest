@@ -7,7 +7,7 @@ namespace SigmaTest.Repository
 {
     public interface IDataRepository
     {
-        Task<IEnumerable<AllSensorData>> GetAllSensor(string deviceId, DateTime date);
-        Task<IEnumerable<SensorBase>> GetSensor(string deviceId, SensorType sensorType, DateTime date);
+        Task<IEnumerable<AllSensorData>> GetAllSensorAsync(string deviceId, DateTime date);
+        Task<IEnumerable<SensorBase>> GetSensorAsync(string deviceId, SensorType sensorType, DateTime date);
     }
 }

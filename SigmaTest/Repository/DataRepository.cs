@@ -17,7 +17,7 @@ namespace SigmaTest.Repository
             _blobService = blobService;
         }
 
-        public async Task<IEnumerable<SensorBase>> GetSensor(string deviceId, SensorType sensorType, DateTime date)
+        public async Task<IEnumerable<SensorBase>> GetSensorAsync(string deviceId, SensorType sensorType, DateTime date)
         {
             var requestedData = $"{deviceId}/{Enum.GetName(typeof(SensorType), sensorType)}";
             
@@ -48,18 +48,26 @@ namespace SigmaTest.Repository
             return null;
         }
 
-        public async Task<IEnumerable<AllSensorData>> GetAllSensor(string deviceId, DateTime date)
+        public async Task<IEnumerable<AllSensorData>> GetAllSensorAsync(string deviceId, DateTime date)
         {
             var requestedBlob = $"{date:yyyy-MM-dd}.csv";
+            
             var blobpath = $"{deviceId}/humidity";
-
             var humidity = await _blobService.GetDataAsync(blobpath,requestedBlob);
+            if (humidity == null) 
+                return null;
+            
 
             blobpath = $"{deviceId}/rainfall";
             var rainfall = await _blobService.GetDataAsync(blobpath, requestedBlob);
+            if (humidity == null)
+                return null;
 
             blobpath = $"{deviceId}/temperature";
             var temperature = await _blobService.GetDataAsync(blobpath, requestedBlob);
+            if (humidity == null)
+                return null;
+
 
             var listab = from h1 in humidity
                          join r1 in rainfall on h1.Date equals r1.Date

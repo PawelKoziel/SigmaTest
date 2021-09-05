@@ -30,7 +30,7 @@ namespace SigmaTest.Controllers
                 return BadRequest();
             }
 
-            var result = await _repository.GetAllSensor(deviceId, date);
+            var result = await _repository.GetAllSensorAsync(deviceId, date);
 
 
             if (result == null)
@@ -51,7 +51,7 @@ namespace SigmaTest.Controllers
                 return BadRequest();
             }
 
-            var result = await _repository.GetAllSensor(deviceId, date);
+            var result = await _repository.GetAllSensorAsync(deviceId, date);
 
 
             if (result == null)
@@ -72,7 +72,7 @@ namespace SigmaTest.Controllers
                 return BadRequest();
             }
 
-            var result = await _repository.GetSensor(deviceId, sensorType, date);
+            var result = await _repository.GetSensorAsync(deviceId, sensorType, date);
 
 
             if (result == null)

@@ -7,8 +7,6 @@ namespace SigmaTest.Models
 {
     public class HumidityDto : SensorBase
     {
-        //public DateTime Date { get; set; }
-
         public Single Humidity { get; set; }
     }
 }

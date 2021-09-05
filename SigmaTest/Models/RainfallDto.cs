@@ -7,8 +7,6 @@ namespace SigmaTest.Models
 {
     public class RainfallDto: SensorBase
     {
-        //public DateTime Date { get; set; }
-
         public Single Rainfall { get; set; }
     }
 }
