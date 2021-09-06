@@ -56,7 +56,6 @@ namespace SigmaTest.Repository
             var humidity = await _blobService.GetDataAsync(blobpath,requestedBlob);
             if (humidity == null) 
                 return null;
-            
 
             blobpath = $"{deviceId}/rainfall";
             var rainfall = await _blobService.GetDataAsync(blobpath, requestedBlob);
@@ -68,18 +67,26 @@ namespace SigmaTest.Repository
             if (humidity == null)
                 return null;
 
+            List<AllSensorData> result = new List<AllSensorData>();
+            for (int i = 0; i < humidity.Count(); i++)
+            {
+                result.Add(new AllSensorData(humidity[i],temperature[i],rainfall[i]));
+            }
 
-            var listab = from h1 in humidity
-                         join r1 in rainfall on h1.Date equals r1.Date
-                         select new AllSensorData() { Date = h1.Date, Humidity = h1.Value, Rainfall = r1.Value };
+
+            //łączenie na podstawie daty
+            //var listab = from h1 in humidity
+            //             join r1 in rainfall on h1.Date equals r1.Date
+            //             select new AllSensorData() { Date = h1.Date, Humidity = h1.Value, Rainfall = r1.Value };
 
 
-            var listac = from s1 in listab
-                         join t1 in temperature on s1.Date equals t1.Date
-                         select new AllSensorData() { Date = s1.Date, Humidity = s1.Humidity, Rainfall = s1.Rainfall, Temperature = t1.Value };
+            //var result = from s1 in listab
+            //             join t1 in temperature on s1.Date equals t1.Date
+            //             select new AllSensorData() { Date = s1.Date, Humidity = s1.Humidity, Rainfall = s1.Rainfall, Temperature = t1.Value };
 
-             return listac.ToList();
+             return result.ToList();
         }
 
     }
+
 }

@@ -9,7 +9,9 @@ using SigmaTest.Models;
 using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using System.Runtime.CompilerServices;
 
+[assembly: InternalsVisibleTo("SigmaTest.Tests")]
 namespace SigmaTest.Services
 {
     public class BlobAccessService : IBlobAccessService
@@ -27,83 +29,108 @@ namespace SigmaTest.Services
             _logger = logger;
             _connector = connector;
             _parsingService = parsingService;
-
             container = _connector.GetContainer();
         }
 
 
-        public async Task<IEnumerable<DataPoint>> GetDataAsync(string blobPath, string blobName)
+        public async Task<List<DataPoint>> GetDataAsync(string blobPath, string blobName)
         {
+            if (String.IsNullOrEmpty(blobPath)|| String.IsNullOrEmpty(blobName))
+            {
+                return null;
+            }
+            
             var blob = container.GetBlobClient(blobPath + "/" + blobName);
 
-            if (await blob.ExistsAsync())
+            try
             {
-                using var dataStream = new MemoryStream();
-                await blob.DownloadToAsync(dataStream);
-                return _parsingService.ParseCsvData(dataStream);
+                if (await blob.ExistsAsync())
+                {
+                    using var dataStream = new MemoryStream();
+                    await blob.DownloadToAsync(dataStream);
+                    return _parsingService.ParseCsvData(dataStream);
+                }
+                else
+                {
+                    var archiveFile = await HandleArchive(blobPath, blobName);
+                    return GetDataFromArchive(blobName, archiveFile);
+                }
             }
-            else
+            catch(Exception ex)
             {
-                var localArchiveName = await HandleDataArchive(blobName, blobPath);
-                return GetDataFromArchive(blobName, localArchiveName);
+                _logger.LogError(ex, "Error getting data");
+                return null;
             }
         }
 
 
-        private async Task<string> HandleDataArchive(string blobName, string blobPath)
+        internal async Task<string> HandleArchive(string blobPath, string blobName)
         {
 
             var archiveName = blobPath + "/historical.zip";
             var blob = container.GetBlobClient(archiveName);
 
-            Directory.CreateDirectory(Path.Combine("Cache", blobPath));
-
-            var localArchiveName = Path.Combine("Cache", blobPath, "historical.zip");
-
-            if (File.Exists(localArchiveName))
+            try
             {
-                var blobProperties = await blob.GetPropertiesAsync();
-                var blobModifDate = blobProperties.Value.LastModified.DateTime;
-                var fileModifDate = File.GetLastWriteTime(localArchiveName);
 
-                if (blobModifDate > fileModifDate)
+                Directory.CreateDirectory(Path.Combine("Cache", blobPath));
+                var localArchiveName = Path.Combine("Cache", blobPath, "historical.zip");
+
+                if (File.Exists(localArchiveName))
                 {
-                    
-                    File.Delete(localArchiveName);
+                    var blobProperties = await blob.GetPropertiesAsync();
+                    var blobModifDate = blobProperties.Value.LastModified.DateTime;
+                    var fileModifDate = File.GetLastWriteTime(localArchiveName);
+
+                    if (blobModifDate > fileModifDate)
+                    {
+                        File.Delete(localArchiveName);
+                        await blob.DownloadToAsync(localArchiveName);
+                    }
+                }
+                else
+                {
                     await blob.DownloadToAsync(localArchiveName);
                 }
+                return localArchiveName;
             }
-            else
+            catch(Exception ex)
             {
-                await blob.DownloadToAsync(localArchiveName);
+                _logger.LogError(ex, $"Error handling archive file for path {blobPath}");
+                throw;
             }
-            return localArchiveName;
         }
 
 
-        public IEnumerable<DataPoint> GetDataFromArchive(string blobName, string archiveFile)
+        internal List<DataPoint> GetDataFromArchive(string blobName, string archiveFile)
         {
-            using (var archiveStream = new MemoryStream())
+            try
             {
-                using (FileStream file = new FileStream(archiveFile, FileMode.Open, FileAccess.Read))
-                    file.CopyTo(archiveStream);
-
-                ZipArchive archive = new ZipArchive(archiveStream);
-                foreach (ZipArchiveEntry entry in archive.Entries)
+                using (var archiveStream = new MemoryStream())
                 {
-                    if (entry.FullName.EndsWith(blobName, StringComparison.OrdinalIgnoreCase))
+                    using (FileStream file = new FileStream(archiveFile, FileMode.Open, FileAccess.Read))
+                        file.CopyTo(archiveStream);
+
+                    ZipArchive archive = new ZipArchive(archiveStream);
+                    foreach (ZipArchiveEntry entry in archive.Entries)
                     {
-                        using (Stream unzippedEntryStream = entry.Open())
-                        using (var dataStream = new MemoryStream())
+                        if (entry.FullName.EndsWith(blobName, StringComparison.OrdinalIgnoreCase))
                         {
-                            unzippedEntryStream.CopyTo(dataStream);
-                            return _parsingService.ParseCsvData(dataStream);
+                            using (Stream unzippedEntryStream = entry.Open())
+                            using (var dataStream = new MemoryStream())
+                            {
+                                unzippedEntryStream.CopyTo(dataStream);
+                                return _parsingService.ParseCsvData(dataStream);
+                            }
                         }
                     }
                 }
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error searching {blobName} in archive file {archiveFile}");
+            }
             return null;
         }
-
     }
 }

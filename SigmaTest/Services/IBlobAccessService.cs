@@ -7,6 +7,6 @@ namespace SigmaTest.Services
 {
     public interface IBlobAccessService
     {
-        Task<IEnumerable<DataPoint>> GetDataAsync(string blobPath, string blobName);
+        Task<List<DataPoint>> GetDataAsync(string blobPath, string blobName);
     }
 }

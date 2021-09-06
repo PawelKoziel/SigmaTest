@@ -49,9 +49,10 @@ namespace SigmaTest
                      appBuilder.Run(async context =>
                      {
                          context.Response.StatusCode = 500;
-                         await context.Response.WriteAsync("An unexpected fault happend");
+                         await context.Response.WriteAsync("Internal server error");
                      }));
             }
+            
 
             app.UseHttpsRedirection();
 

@@ -8,22 +8,19 @@ using System.Threading.Tasks;
 namespace SigmaTest.Controllers
 {
     [ApiController]
-    //[Route("/api/v1")]
     [Route("/")]
     public class SensorController : ControllerBase
     {
-        private readonly ILogger<SensorController> _logger;
         private readonly IDataRepository _repository;
 
-        public SensorController(ILogger<SensorController> logger, IDataRepository repository)
+        public SensorController(IDataRepository repository)
         {
-            _logger = logger;
             _repository = repository;
         }
 
-        //api/v1/dockan/data/2019-01-11
-        [HttpGet("api/v1/{deviceId}/data/{date}")]
-        public async Task<IActionResult> GetRoute(string deviceId, DateTime date)
+        //api/v1/devices/dockan/data/2019-01-11
+        [HttpGet("api/v1/devices/{deviceId}/data/{date}")]
+        public async Task<IActionResult> GetDeviceDataRoute(string deviceId, DateTime date)
         {
             if (String.IsNullOrEmpty(deviceId) || date == default)
             {
@@ -42,9 +39,9 @@ namespace SigmaTest.Controllers
         }
 
 
-        //	getdatafordevice?deviceId=dockan&date=2019-01-11
+        //	getdatafordevice?deviceId=dockan&date=2018-09-18
         [HttpGet("getdatafordevice")]
-        public async Task<IActionResult> GetQuery([FromQuery]string deviceId, [FromQuery] DateTime date)
+        public async Task<IActionResult> GetDeviceDataQuery([FromQuery]string deviceId, [FromQuery] DateTime date)
         {
             if (String.IsNullOrEmpty(deviceId) || date == default)
             {
@@ -63,9 +60,9 @@ namespace SigmaTest.Controllers
         }
 
 
-        //api/v1/dockan/data/2019-01-11
-        [HttpGet("api/v1/{deviceId}/data/{date}/{sensorType}")]
-        public async Task<IActionResult> GetRoute(string deviceId, DateTime date, SensorType sensorType)
+        //api/v1/devices/dockan/data/2019-01-11
+        [HttpGet("api/v1/devices/{deviceId}/data/{date}/{sensorType}")]
+        public async Task<IActionResult> GetSensorDataRoute(string deviceId, DateTime date, SensorType sensorType)
         {
             if (String.IsNullOrEmpty(deviceId) || date == default)
             {
@@ -80,6 +77,27 @@ namespace SigmaTest.Controllers
                 return NotFound();
             }
             
+            return new JsonResult(result);
+        }
+
+        //getdatafordevice?deviceId=dockan&date=2018-09-18
+        [HttpGet("getdata")]
+        public async Task<IActionResult> GetSensorDataQuery([FromQuery] string deviceId, 
+                                                            [FromQuery] DateTime date, 
+                                                            [FromQuery] SensorType sensorType)
+        {
+            if (String.IsNullOrEmpty(deviceId) || date == default)
+            {
+                return BadRequest();
+            }
+
+            var result = await _repository.GetSensorAsync(deviceId, sensorType, date);
+
+            if (result == null)
+            {
+                return NotFound();
+            }
+
             return new JsonResult(result);
         }
     }

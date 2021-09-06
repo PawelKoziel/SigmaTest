@@ -42,5 +42,18 @@ namespace SigmaTest.Tests
             Assert.Equal(actual[1].Date, expected.Date);
             Assert.Equal(actual[1].Value, expected.Value);
         }
+
+        [Fact]
+        public void Parse_Wrong_Entries_without_exception()
+        {
+            CsvParsingService service = new CsvParsingService();
+            var dataStream = CreateTestStream("2010-11-01T00:00:00;x\r\n2010 - zz - 01T00: 00:05; 37,01\r\n2010 - 11 - 01T00: 00:10; 37,00");
+
+            var actual = service.ParseCsvData(dataStream);
+
+            Assert.Null(actual[0]);
+            Assert.Null(actual[1]);
+            Assert.NotNull(actual[2]);
+        }
     }
 }
