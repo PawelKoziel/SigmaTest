@@ -15,7 +15,7 @@ namespace SigmaTest.Services
         public List<DataPoint> ParseCsvData(Stream stream)
         {
             stream.Position = 0;
-            var csvParserOptions = new CsvParserOptions(false, ';');  //TODO skip header??
+            var csvParserOptions = new CsvParserOptions(false, ';'); 
             var csvMapper = new CsvSensorMapping();
             CsvParser<DataPoint> csvParser = new CsvParser<DataPoint>(csvParserOptions, csvMapper);
             var result = csvParser

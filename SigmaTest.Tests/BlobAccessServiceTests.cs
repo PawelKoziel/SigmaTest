@@ -10,14 +10,15 @@ namespace SigmaTest.Tests
 {
     public class BlobAccessServiceTests
     {
-        ILogger<BlobAccessService> logger = Mock.Of<ILogger<BlobAccessService>>();
+        ILogger<DataAccessService> logger = Mock.Of<ILogger<DataAccessService>>();
 
         [Fact]
         public async void Dont_use_empty_parameters()
         {                     
             Mock<IAzureConnector> connector = new Moq.Mock<IAzureConnector>();
+            Mock<IArchiveService> archive = new Moq.Mock<IArchiveService>();
             var parser = Mock.Of<ICsvParsingService>();
-            var blobService = new BlobAccessService(logger, connector.Object, parser);
+            var blobService = new DataAccessService(logger, connector.Object, parser, archive.Object);
 
             var result = await blobService.GetDataAsync("", "");
 

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -28,10 +29,12 @@ namespace SigmaTest
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddScoped<IBlobAccessService, BlobAccessService>();
+            services.AddScoped<IDataAccessService, DataAccessService>();
             services.AddScoped<IDataRepository, DataRepository>();
             services.AddScoped<ICsvParsingService, CsvParsingService>();
             services.AddScoped<IAzureConnector, AzureConnector>();
+            services.AddScoped<IArchiveService, ArchiveService>();
+            
 
             services.AddControllers();
         }
@@ -46,13 +49,14 @@ namespace SigmaTest
             else
             {
                 app.UseExceptionHandler(appBuilder =>
-                     appBuilder.Run(async context =>
+                      appBuilder.Run(async context =>
                      {
-                         context.Response.StatusCode = 500;
-                         await context.Response.WriteAsync("Internal server error");
+                         var exception = context.Features
+                        .Get<IExceptionHandlerPathFeature>().Error;
+                         await context.Response.WriteAsync(exception.Message);
                      }));
             }
-            
+
 
             app.UseHttpsRedirection();
 

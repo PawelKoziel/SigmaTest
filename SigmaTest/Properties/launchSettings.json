@@ -14,7 +14,7 @@
       "launchBrowser": true,
       "launchUrl": "api/v1/devices/dockan/data/2019-01-11/temperature",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Production"
       }
     },
     "SigmaTest": {

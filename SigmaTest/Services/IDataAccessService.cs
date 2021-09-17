@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace SigmaTest.Services
 {
-    public interface IBlobAccessService
+    public interface IDataAccessService
     {
         Task<List<DataPoint>> GetDataAsync(string blobPath, string blobName);
     }

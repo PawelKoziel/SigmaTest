@@ -8,7 +8,7 @@ using Xunit;
 
 namespace SigmaTest.Tests
 {
-    public class CsvParsingServiceTest
+    public class CsvParsingServiceTests
     {
         public MemoryStream CreateTestStream(string value)
         {

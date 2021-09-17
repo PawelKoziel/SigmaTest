@@ -1,70 +1,42 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Configuration;
-using System.IO;
-using System.IO.Compression;
+﻿using Azure.Storage.Blobs;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using SigmaTest.Models;
-using Azure;
-using Azure.Storage.Blobs;
-using Azure.Storage.Blobs.Models;
-using System.Runtime.CompilerServices;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
-[assembly: InternalsVisibleTo("SigmaTest.Tests")]
 namespace SigmaTest.Services
 {
-    public class BlobAccessService : IBlobAccessService
+    public class ArchiveService : IArchiveService
     {
-        private readonly IAzureConnector _connector;
-        private readonly ICsvParsingService _parsingService;
-        private readonly ILogger<BlobAccessService> _logger;
 
         private readonly BlobContainerClient container;
+        private readonly ILogger<ArchiveService> _logger;
+        private readonly ICsvParsingService _parsingService;
 
-        public BlobAccessService(ILogger<BlobAccessService> logger
-                                , IAzureConnector connector
-                                , ICsvParsingService parsingService)
+        public ArchiveService(ILogger<ArchiveService> logger, IAzureConnector connector, ICsvParsingService parsingService)
         {
             _logger = logger;
-            _connector = connector;
             _parsingService = parsingService;
-            container = _connector.GetContainer();
-        }
-
-
-        public async Task<List<DataPoint>> GetDataAsync(string blobPath, string blobName)
-        {
-            if (String.IsNullOrEmpty(blobPath)|| String.IsNullOrEmpty(blobName))
-            {
-                return null;
-            }
+            container = connector.GetContainer();
             
-            var blob = container.GetBlobClient(blobPath + "/" + blobName);
+        }
 
-            try
-            {
-                if (await blob.ExistsAsync())
-                {
-                    using var dataStream = new MemoryStream();
-                    await blob.DownloadToAsync(dataStream);
-                    return _parsingService.ParseCsvData(dataStream);
-                }
-                else
-                {
-                    var archiveFile = await HandleArchive(blobPath, blobName);
-                    return GetDataFromArchive(blobName, archiveFile);
-                }
-            }
-            catch(Exception ex)
-            {
-                _logger.LogError(ex, "Error getting data");
-                return null;
-            }
+        public async Task<List<DataPoint>> GetData(string blobPath, string blobName)
+        {
+            var archiveName = await GetArchive(blobPath, blobName);
+            var data = ExtractDataFromArchive(blobName, archiveName);
+            
+            return data;
         }
 
 
-        internal async Task<string> HandleArchive(string blobPath, string blobName)
+        public async Task<string> GetArchive(string blobPath, string blobName)
         {
 
             var archiveName = blobPath + "/historical.zip";
@@ -94,7 +66,7 @@ namespace SigmaTest.Services
                 }
                 return localArchiveName;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error handling archive file for path {blobPath}");
                 throw;
@@ -102,7 +74,7 @@ namespace SigmaTest.Services
         }
 
 
-        internal List<DataPoint> GetDataFromArchive(string blobName, string archiveFile)
+        private List<DataPoint> ExtractDataFromArchive(string blobName, string archiveFile)
         {
             try
             {
